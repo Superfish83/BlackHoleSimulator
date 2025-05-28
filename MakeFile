@@ -2,11 +2,10 @@ BDIR = ./build
 SDIR = ./src
 
 all:
-	g++ -c ${SDIR}/vectors.cpp -o ${BDIR}/vectors.o
 	g++ -c ${SDIR}/rays.cpp -o ${BDIR}/rays.o
 	g++ -c ${SDIR}/render.cpp -o ${BDIR}/render.o
 	g++ -c ${SDIR}/main.cpp -o ${BDIR}/main.o
-	g++ -o ${BDIR}/main ${BDIR}/main.o ${BDIR}/vectors.o ${BDIR}/rays.o ${BDIR}/render.o
+	g++ -o ${BDIR}/main ${BDIR}/main.o ${BDIR}/rays.o ${BDIR}/render.o
 
 run:
 	${BDIR}/main
