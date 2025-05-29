@@ -149,56 +149,7 @@ using namespace vec;
 
 namespace rays {
     using color = vec3;
-
-    class ray {
-    public:
-        int l; // the parameter (lambda) of the ray path curve
-
-        vec4 x; // position
-        vec4 Dx; // derivative of position with respect to lambda
-        vec4 D2x; // second derivative of position with respect to lambda
-
-        color rayColor;
-        schwMetric metric; // Stores and computes the metric data at ray's position
-        
-        double dl; // update step size (='delta lambda')
-        
-        ray () {}
-        ray (vec4 x_, vec4 Dx0){
-            if(x_.getCType() != CoordType::SPHERICAL)
-                throw std::invalid_argument("ray(): x should be in spherical coordinate.");
-            if(Dx0.getCType() != CoordType::SPHERICAL)
-                throw std::invalid_argument("ray(): Dx should be in spherical coordinate.");
-            x   = x_;
-            Dx  = Dx0;
-            D2x = vec4(0,   0,   0,   0,   CoordType::SPHERICAL);
-            metric.computeMetric(&x, &Dx, &D2x);
-        }
-        ray (double x1,  double x2,  double x3,
-             double Dx1, double Dx2, double Dx3) {
-            x   = vec4(0,   x1,  x2,  x3,  CoordType::SPHERICAL);
-            Dx  = vec4(0,   Dx1, Dx2, Dx3, CoordType::SPHERICAL);
-            D2x = vec4(0,   0,   0,   0,   CoordType::SPHERICAL);
-            metric.computeMetric(&x, &Dx, &D2x);
-        }
-
-        void update(){
-            vec4 v(0, Dx[1], (x[1]*Dx[2]), (x[1]*sin(x[2])*Dx[3]));
-            dl = 0.05 / v.norm();
-            if(x[1] < 5) dl = 0.01 / v.norm();
-            if(x[1] < 2) dl = 0.002 / v.norm();
-
-            // Update x and Dx by Euler's method
-            for(int i = 0; i < 4; i++){
-                x.set(i, 
-                    x[i] + (dl)*Dx[i] + (dl)*(dl)/2*D2x[i] );
-                Dx.set(i, 
-                    Dx[i] + (dl)*D2x[i]);
-            }
-            // Compute metric at updated position
-            metric.computeMetric(&x, &Dx, &D2x);
-        }
-    };
+    
 
     class schwMetric {
     // class that stores and computes data related to the
@@ -244,6 +195,55 @@ namespace rays {
         }
 
         void computeMetric(vec4 *x, vec4 *Dx, vec4 *D2x);
+    };
+
+    class ray {
+    public:
+        int l; // the parameter (lambda) of the ray path curve
+
+        vec4 x; // position
+        vec4 Dx; // derivative of position with respect to lambda
+        vec4 D2x; // second derivative of position with respect to lambda
+
+        color rayColor;
+        schwMetric metric; // Stores and computes the metric data at ray's position
+        
+        double dl; // update step size (='delta lambda')
+        
+        ray () {}
+        ray (vec4 x_, vec4 Dx0){
+            if(x_.getCType() != CoordType::SPHERICAL)
+                throw std::invalid_argument("ray(): x should be in spherical coordinate.");
+            if(Dx0.getCType() != CoordType::SPHERICAL)
+                throw std::invalid_argument("ray(): Dx should be in spherical coordinate.");
+            x   = x_;
+            Dx  = Dx0;
+            D2x = vec4(0,   0,   0,   0,   CoordType::SPHERICAL);
+            metric.computeMetric(&x, &Dx, &D2x);
+        }
+        ray (double x1,  double x2,  double x3,
+             double Dx1, double Dx2, double Dx3) {
+            x   = vec4(0,   x1,  x2,  x3,  CoordType::SPHERICAL);
+            Dx  = vec4(0,   Dx1, Dx2, Dx3, CoordType::SPHERICAL);
+            D2x = vec4(0,   0,   0,   0,   CoordType::SPHERICAL);
+            metric.computeMetric(&x, &Dx, &D2x);
+        }
+
+        void update(){
+            vec4 v(0, Dx[1], (x[1]*Dx[2]), (x[1]*sin(x[2])*Dx[3]));
+            dl = 0.05 / v.norm();
+            if(x[1] < 4) dl = 0.005 / v.norm();
+
+            // Update x and Dx by Euler's method
+            for(int i = 0; i < 4; i++){
+                x.set(i, 
+                    x[i] + (dl)*Dx[i] + (dl)*(dl)/2*D2x[i] );
+                Dx.set(i, 
+                    Dx[i] + (dl)*D2x[i]);
+            }
+            // Compute metric at updated position
+            metric.computeMetric(&x, &Dx, &D2x);
+        }
     };
 }
 
