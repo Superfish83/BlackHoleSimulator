@@ -12,18 +12,12 @@ namespace vec {
         CARTESIAN, // Cartesian coordinates
         SPHERICAL, // Spherical coordinates
     };
-    enum class VecType {
-        UNDEFINED,
-        COVARIANT,
-        CONTRAVARIANT
-    };
 
     class vecN {
     protected:
         double* data;
         int dim; // Dimension
         CoordType cType = CoordType::UNDEFINED; // Coordinate type
-        VecType vType = VecType::UNDEFINED; // Vector type (covariant or contravariant)
     public:
         // Constructor and Destructor
         vecN() : data(nullptr), dim(0) {} // Default constructor
@@ -52,7 +46,6 @@ namespace vec {
         inline void set(int index, double value) { data[index] = value; }
     };
 
-    class vec4;
     class vec3 : public vecN {
         public:
         vec3(float x = 0.0f, float y = 0.0f, float z = 0.0f,
@@ -61,24 +54,6 @@ namespace vec {
             dim = 3;
             cType = type;
         }
-        inline vec4 getVec4() const;
-        void convToSpherical(); // Manipulate the vector to Spherical coordinates
-        void convToCartesian(); // Manipulate the vector to Cartesian coordinates
-    };
-    
-    class vec4 : public vecN {
-        public:
-        vec4(float t = 0.0f, float x = 0.0f, float y = 0.0f, float z = 0.0f,
-            CoordType type=CoordType::UNDEFINED) {
-            data = new double[4]{t, x, y, z};
-            dim = 4;
-            cType = type;
-        }
-        void setCoordType(CoordType type) {
-            if(cType==CoordType::UNDEFINED) cType = type;
-            else throw std::invalid_argument("Illegal coordinate conversion: cannot setCoordinate to a vector which already has a coordinate type.");
-        }
-        inline vec3 getVec3() const;
         void convToSpherical(); // Manipulate the vector to Spherical coordinates
         void convToCartesian(); // Manipulate the vector to Cartesian coordinates
     };
@@ -121,22 +96,6 @@ namespace vec {
     inline vec3 operator*(const double c, const vec3& v) {
         return vec3(v[0] * c, v[1] * c, v[2] * c);
     }
-
-    inline vec4 operator-(const vec4& a) {
-        return vec4(-a[0], -a[1], -a[2], -a[3], a.getCType());
-    }
-    inline vec4 operator+(const vec4& a, const vec4& b) {
-        return vec4(a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]);
-    }
-    inline vec4 operator-(const vec4& a, const vec4& b) {
-        return vec4(a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]);
-    }
-    inline vec4 operator*(const vec4& v, const double c) {
-        return vec4(v[0] * c, v[1] * c, v[2] * c, v[3] * c);
-    }
-    inline vec4 operator*(const double c, const vec4& v) {
-        return vec4(v[0] * c, v[1] * c, v[2] * c, v[3] * c);
-    }
 };
 
 #endif
@@ -147,104 +106,76 @@ namespace vec {
 using namespace std;
 using namespace vec;
 
-namespace rays {
-    using color = vec3;
+using color = vec3;
+const double Pi = 3.1415926536;
+
+class ray {
+public:
+    double u;
+    double Du;
+    double D2u;
+
+    double alpha;
+    double beta;
     
+    double phi = 0;
+    const double dphi = 0.05;
+    const double rS = 1.0;
+    const double bgR = 15.0; // distance from center to background (celestial sphere)
 
-    class schwMetric {
-    // class that stores and computes data related to the
-    // Schwarzschild metric at a given position
-    public:
-        // ****************************************************************
-        // Arrays that store the metric tensor, partial derivitives,
-        // and Christoffel symbols at given point and direction
+    bool finished = false;
+    bool background = false;
+    bool horizon = false;
+    double phi_final;
 
-        // (1) metric tensor
-        // g[i] := g_(ii)
-        double g[4];
+    ray(double D_, double alpha_, double beta_):
+        u(1/D_), alpha(alpha_), beta(beta_), Du(1/(D_ * tan(alpha_))) { }
 
-        // (2) inverse metric tensor
-        // g_inv[i] := g^(ii) = 1/g_(ii)
-        double g_inv[4];
-        
-        // (3) partial derivatives of the metric
-        // part_g[i][j] := \partial_(i) g_(jj)
-        double part_g[4][4];
-
-        // (4) Christoffel symbols of the metric
-        // christoffel[i][j]][k] := \Gamma^(i)_(jk) 
-        double christoffel[4][4][4];
-
-        // ****************************************************************
-
-        double rS = 1.0; // Schwarzchild radius
-        const double d = 10e-5; // small value added in division to prevent division by zero
-
-        schwMetric() {
-            // Initialize all the arrays
-            for(int i = 0; i < 4; i++){
-                g[i] = 0;
-                g_inv[i] = 0;
-                for(int j = 0; j < 4; j++){
-                    part_g[i][j] = 0;
-                    for(int k = 0; k < 4; k++){
-                        christoffel[i][j][k] = 0;
-                    }
-                }
+    color getColor(){
+        int max_iter = 100;
+        for(int i = 0; i < max_iter; i++){
+            update();
+            if(1/u > bgR){
+                finished = true;
+                background = true;
+                phi_final = phi;
+                break;
+            }
+            if(1/u <= rS){
+                finished = true;
+                horizon = true;
+                phi_final = phi;
+                break;
             }
         }
 
-        void computeMetric(vec4 *x, vec4 *Dx, vec4 *D2x);
-    };
+        vec3 bgPos = getBgPos();
 
-    class ray {
-    public:
-        int l; // the parameter (lambda) of the ray path curve
+        // set Color according to bgPos
+        double tmp = max(min(abs(bgPos[1]) / (Pi/2), 1.0), 0.0);
+        if(background) return color(0.7*tmp, 0.3, 1- 0.7*tmp);
+        else return color(0,0,0);
+    }
 
-        vec4 x; // position
-        vec4 Dx; // derivative of position with respect to lambda
-        vec4 D2x; // second derivative of position with respect to lambda
+    // Get the position of the ray's destination in spherical coordinates 
+    vec3 getBgPos(){
+        double r_rot = bgR;
+        //double th_rot = Pi/2 - beta;
+        double sp2 = sin(phi_final) * sin(phi_final);
+        double th_rot = Pi/2 - abs(atan(sin(phi_final) * tan(beta)));
+        double phi_rot = phi_final;
 
-        color rayColor;
-        schwMetric metric; // Stores and computes the metric data at ray's position
-        
-        double dl; // update step size (='delta lambda')
-        
-        ray () {}
-        ray (vec4 x_, vec4 Dx0){
-            if(x_.getCType() != CoordType::SPHERICAL)
-                throw std::invalid_argument("ray(): x should be in spherical coordinate.");
-            if(Dx0.getCType() != CoordType::SPHERICAL)
-                throw std::invalid_argument("ray(): Dx should be in spherical coordinate.");
-            x   = x_;
-            Dx  = Dx0;
-            D2x = vec4(0,   0,   0,   0,   CoordType::SPHERICAL);
-            metric.computeMetric(&x, &Dx, &D2x);
-        }
-        ray (double x1,  double x2,  double x3,
-             double Dx1, double Dx2, double Dx3) {
-            x   = vec4(0,   x1,  x2,  x3,  CoordType::SPHERICAL);
-            Dx  = vec4(0,   Dx1, Dx2, Dx3, CoordType::SPHERICAL);
-            D2x = vec4(0,   0,   0,   0,   CoordType::SPHERICAL);
-            metric.computeMetric(&x, &Dx, &D2x);
-        }
+        return vec3(r_rot, th_rot, phi_rot);
+    }
+    
+    void update(){
+        phi += dphi;
+        D2u = 1.5 * rS * u*u - u;
 
-        void update(){
-            vec4 v(0, Dx[1], (x[1]*Dx[2]), (x[1]*sin(x[2])*Dx[3]));
-            dl = 0.05 / v.norm();
-            if(x[1] < 4) dl = 0.005 / v.norm();
-
-            // Update x and Dx by Euler's method
-            for(int i = 0; i < 4; i++){
-                x.set(i, 
-                    x[i] + (dl)*Dx[i] + (dl)*(dl)/2*D2x[i] );
-                Dx.set(i, 
-                    Dx[i] + (dl)*D2x[i]);
-            }
-            // Compute metric at updated position
-            metric.computeMetric(&x, &Dx, &D2x);
-        }
-    };
-}
+        // Euler's method
+        u += dphi * Du + 0.5 * (dphi*dphi) * D2u;
+        Du += dphi * D2u;
+    }
+};
 
 #endif
