@@ -3,7 +3,6 @@
 #include "rays.h"
 
 using namespace std;
-using namespace vec;
 
 class camera{
 public:
@@ -15,33 +14,19 @@ public:
     // field of view (in degrees)
     double fov;
 
-    void render(){
-        char buffer[1024];
-        double c;
-        for(int j = 1; j <= hres; j++){
-            char *p = buffer;
-            for(int i = 1; i <= wres; i++){
-                c = getColor(i, j)[0];
-                int val = (int)round(c);
-                if(val < 0) p += sprintf(p, "X");
-                else p += sprintf(p, "%d", val);
-            }
-            cout << buffer << endl;
-        }
-    }
-
     color getColor(int i, int j){
         // Create a new ray object (for the ith row, jth col of image)
         
-        double vp_dist = fov/20;
+        double vp_dist = (wres/2.0) / tan(fov/2);
 
         double pix_x = ((double)i - wres/2);
         double pix_y = ((double)j - hres/2);
 
+        vec3 v(vp_dist, pix_x, pix_y);
         double beta = atan(pix_y/pix_x);
-        double alpha = acos(vp_dist/sqrt(1 + pix_x*pix_x + pix_y*pix_y));
+        double alpha = acos(vp_dist / v.norm());
 
-        double D = 3.0;
+        double D = 5.0;
 
         ray ray_i(D, alpha, beta);
 
@@ -49,14 +34,16 @@ public:
     }
 
 
-    camera(): wres(256), aspect_ratio(0.75), hres(192), fov(Pi) { }
-    camera(int wres, double aspect_ratio, double wfov, double hfov):
+    camera(): wres(256), aspect_ratio(0.75), hres(192), fov(Pi * 0.8) { }
+    camera(int wres):
+        wres(wres), aspect_ratio(0.75), hres((int)(wres * 0.75)), fov(Pi * 0.8) { }
+    camera(int wres, double aspect_ratio, double fov):
         wres(wres), hres((int)(wres * aspect_ratio)), fov(fov) { }
 
     void renderToPPM(){
         cout << "P3\n" << wres << ' ' << hres << "\n255\n";
 
-        char buffer[8192];
+        char buffer[32768];
         color c;
         for(int j = 1; j <= hres; j++){
             char *p = buffer;
@@ -71,7 +58,7 @@ public:
 };
 
 int main(void){
-    camera cam;
+    camera cam(384);
     cam.renderToPPM();
 
     return 0;
