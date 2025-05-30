@@ -29,6 +29,7 @@ double distance(const vec3& a_, const vec3& b_){
     a = a_;
     b = b_;
 
+
     auto cta = a.getCType();
     auto ctb = b.getCType();
 
@@ -36,11 +37,13 @@ double distance(const vec3& a_, const vec3& b_){
         throw invalid_argument("Can't compute distance for non-geometric vectors");
     }
 
-    if(cta == CoordType::SPHERICAL){
-        a.convToCartesian();
+    if(cta == CoordType::CARTESIAN){
+        a.set(0, 1);
+        a.convToSpherical();
     }
-    if(ctb == CoordType::SPHERICAL){
-        b.convToCartesian();
+    if(ctb == CoordType::CARTESIAN){
+        b.set(0, 1);
+        b.convToSpherical();
     }
     return (a-b).norm();
 }

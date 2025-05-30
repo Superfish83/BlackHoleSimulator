@@ -102,9 +102,9 @@ public:
     double beta;
     
     double phi = 0;
-    const double dphi = 0.05;
+    double dphi = 0.01;
     const double rS = 1.0;
-    const double bgR = 15.0; // distance from center to background (celestial sphere)
+    const double bgR = 50.0; // distance from center to background (celestial sphere)
 
     bool finished = false;
     bool background = false;
@@ -115,7 +115,7 @@ public:
         u(1/D_), alpha(alpha_), beta(beta_), Du(1/(D_ * tan(alpha_))) { }
 
     color getColor(){
-        int max_iter = 100;
+        int max_iter = 500;
         for(int i = 0; i < max_iter; i++){
             update();
             if(1/u > bgR){
@@ -137,28 +137,27 @@ public:
         // set Color according to bgPos
         
         /*
-        double tmp = max(min(abs(bgPos[1]) / (Pi/2), 1.0), 0.0);
-        if(background) return color(0.7*tmp, 0.3, 1- 0.7*tmp);
+        double tmp = max(min((beta+Pi) / (2*Pi), 1.0), 0.0);
+        if(background) return color(tmp, 0.0, 1-tmp);
         else return color(0,0,0);
         */
-
-        double delta = 0.0;
-        vec3 starpos(bgR, Pi/2 + delta, Pi + delta, CoordType::SPHERICAL);
+        double thOffset = -0.4;
+        double phiOffset = 0.2;
+        vec3 starpos(bgR, Pi/2 + thOffset, Pi + phiOffset, CoordType::SPHERICAL);
         if(background){
             const double dist = distance(starpos, bgPos);
-            const double tmp = max(0.1, 1 - 0.5 * dist);
-            return color(tmp, tmp, tmp);
+            const double tmp = max(0.2, 1 - 3.0 * dist);
+            return color(tmp, tmp, tmp);    
         }
         else return color(0,0,0);
     }
 
     // Get the position of the ray's destination in spherical coordinates 
     vec3 getBgPos(){
+        // transform (rotate along x axis by beta)
         double r_rot = bgR;
-        //double th_rot = Pi/2 - beta;
-        double sp2 = sin(phi_final) * sin(phi_final);
-        double th_rot = Pi/2 - abs(atan(sin(phi_final) * tan(beta)));
-        double phi_rot = phi_final;
+        double th_rot = acos(sin(phi_final) * sin(beta));
+        double phi_rot = atan(tan(phi_final) * cos(beta)) + Pi;
 
         return vec3(r_rot, th_rot, phi_rot, CoordType::SPHERICAL);
     }

@@ -19,11 +19,11 @@ public:
         
         double vp_dist = (wres/2.0) / tan(fov/2);
 
-        double pix_x = ((double)i - wres/2);
-        double pix_y = ((double)j - hres/2);
+        double pix_x = ((double)i - (wres/2+1));
+        double pix_y = ((double)j - (hres/2+1));
 
         vec3 v(vp_dist, pix_x, pix_y);
-        double beta = atan(pix_y/pix_x);
+        double beta = atan2(pix_y, pix_x);
         double alpha = acos(vp_dist / v.norm());
 
         double D = 5.0;
@@ -58,7 +58,7 @@ public:
 };
 
 int main(void){
-    camera cam(384);
+    camera cam(256);//384);
     cam.renderToPPM();
 
     return 0;
