@@ -26,7 +26,7 @@ public:
         double beta = atan2(pix_y, pix_x);
         double alpha = acos(vp_dist / v.norm());
 
-        double D = 5.0;
+        double D = 10.0;
 
         ray ray_i(D, alpha, beta);
 
@@ -34,9 +34,9 @@ public:
     }
 
 
-    camera(): wres(256), aspect_ratio(0.75), hres(192), fov(Pi * 0.8) { }
+    camera(): wres(256), aspect_ratio(0.75), hres(192), fov(Pi * 0.6) { }
     camera(int wres):
-        wres(wres), aspect_ratio(0.75), hres((int)(wres * 0.75)), fov(Pi * 0.8) { }
+        wres(wres), aspect_ratio(0.75), hres((int)(wres * 0.75)), fov(Pi * 0.6) { }
     camera(int wres, double aspect_ratio, double fov):
         wres(wres), hres((int)(wres * aspect_ratio)), fov(fov) { }
 
@@ -58,7 +58,7 @@ public:
 };
 
 int main(void){
-    camera cam(256);//384);
+    camera cam(256, 0.75, Pi * 0.6);//384);
     cam.renderToPPM();
 
     return 0;

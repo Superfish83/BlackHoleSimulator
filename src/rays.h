@@ -102,9 +102,9 @@ public:
     double beta;
     
     double phi = 0;
-    double dphi = 0.01;
+    double dphi = 0.03;
     const double rS = 1.0;
-    const double bgR = 50.0; // distance from center to background (celestial sphere)
+    const double bgR = 100.0; // distance from center to background (celestial sphere)
 
     bool finished = false;
     bool background = false;
@@ -132,34 +132,59 @@ public:
             }
         }
 
-        vec3 bgPos = getBgPos();
+        vec3 bgDir = getBgDir();
 
-        // set Color according to bgPos
-        
-        /*
-        double tmp = max(min((beta+Pi) / (2*Pi), 1.0), 0.0);
-        if(background) return color(tmp, 0.0, 1-tmp);
+        // set Color according to bgDir
+
+        int bg_width = 1000;
+        int bg_height = 1000;
+        if(background) return getBgProjColor(bgDir, bg_width, bg_height);
         else return color(0,0,0);
-        */
-        double thOffset = -0.4;
-        double phiOffset = 0.2;
+
+        /*
+        double thOffset = -0.0;
+        double phiOffset = 0.0;
         vec3 starpos(bgR, Pi/2 + thOffset, Pi + phiOffset, CoordType::SPHERICAL);
         if(background){
-            const double dist = distance(starpos, bgPos);
+            const double dist = distance(starpos, bgDir);
             const double tmp = max(0.2, 1 - 3.0 * dist);
             return color(tmp, tmp, tmp);    
         }
-        else return color(0,0,0);
+        else return color(0,0,0);*/
     }
 
     // Get the position of the ray's destination in spherical coordinates 
-    vec3 getBgPos(){
+    vec3 getBgDir(){
         // transform (rotate along x axis by beta)
-        double r_rot = bgR;
-        double th_rot = acos(sin(phi_final) * sin(beta));
-        double phi_rot = atan(tan(phi_final) * cos(beta)) + Pi;
+        double r_beta = bgR;
+        double th_beta = acos(sin(phi_final) * sin(beta));
+        double phi_beta = atan(tan(phi_final) * cos(beta)) + Pi;
 
-        return vec3(r_rot, th_rot, phi_rot, CoordType::SPHERICAL);
+        return vec3(r_beta, th_beta, phi_beta, CoordType::SPHERICAL);
+    }
+
+    color getBgProjColor(vec3 &dir, int bg_w, int bg_h){
+        vec3 pos;
+        pos = dir;
+
+        pos.set(0, -(bg_w)/2 / (cos(dir[2])));
+        pos.convToCartesian();
+
+        // Get projection to 2d plane
+        int x = (int)(bg_w * (0.5 - pos[1] / (bg_w)));
+        int y = (int)(bg_h * (0.5 - pos[2] / (bg_h)));
+        //x = (x + 100*bg_w) % bg_w; // Wrap around
+        //y = (y + 100*bg_h) % bg_h; // Wrap around
+        if(x < 0 || x >= bg_w || y < 0 || y >= bg_h){
+            return color(1,0,0); // Out of bounds
+        }
+
+        double l = max(0.0, 1-5*sqrt(
+            ((double)x/bg_w - 0.6)*((double)x/bg_w - 0.6) +
+            ((double)y/bg_h - 0.6)*((double)y/bg_h - 0.6)
+        ));
+
+        return color(l,l,l);
     }
     
     void update(){
