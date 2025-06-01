@@ -18,9 +18,19 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_pushButton_clicked();
+    void on_bRender_clicked();
+
+    void on_hsXoff_sliderMoved(int position);
+
+    void on_hsYoff_sliderMoved(int position);
+
+    void on_hsYoff_valueChanged(int value);
+
+    void on_hsXoff_valueChanged(int value);
 
 private:
     Ui::MainWindow *ui;
+    int starOffsetX;
+    int starOffsetY;
 };
 #endif // MAINWINDOW_H
