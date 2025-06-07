@@ -176,12 +176,12 @@ public:
         //x = (x + 100*bg_w) % bg_w; // Wrap around
         //y = (y + 100*bg_h) % bg_h; // Wrap around
         if(x < 0 || x >= bg_w || y < 0 || y >= bg_h){
-            return color(1,0,0); // Out of bounds
+            return color(1,0,0); // for pixels out of bounds
         }
 
-        double l = max(0.0, 1-5*sqrt(
-            ((double)x/bg_w - 0.6)*((double)x/bg_w - 0.6) +
-            ((double)y/bg_h - 0.6)*((double)y/bg_h - 0.6)
+        double l = max(0.2, 1-10*sqrt(
+            ((double)x/bg_w - 0.52)*((double)x/bg_w - 0.52) +
+            ((double)y/bg_h - 0.52)*((double)y/bg_h - 0.52)
         ));
 
         return color(l,l,l);
