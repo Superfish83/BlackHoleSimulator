@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QImage>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -20,17 +21,16 @@ public:
 private slots:
     void on_bRender_clicked();
 
-    void on_hsXoff_sliderMoved(int position);
+    void on_rbStar_clicked();
 
-    void on_hsYoff_sliderMoved(int position);
+    void on_bLoadImage_clicked();
 
-    void on_hsYoff_valueChanged(int value);
-
-    void on_hsXoff_valueChanged(int value);
+    void on_rbImage_clicked();
 
 private:
     Ui::MainWindow *ui;
-    int starOffsetX;
-    int starOffsetY;
+    bool bgImageLoaded = false;
+    QPixmap bgPixmap;
+    QImage bgImage;
 };
 #endif // MAINWINDOW_H

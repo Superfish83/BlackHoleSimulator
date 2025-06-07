@@ -15,8 +15,8 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 set(PROJECT_SOURCES
         main.cpp
 
-        rays.cpp
-        rays.h
+
+        ray.h
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
@@ -27,6 +27,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         camera.h
+        vecN.h
+
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET QtApp APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

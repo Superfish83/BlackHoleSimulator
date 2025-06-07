@@ -1,25 +1,90 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "rays.h"
+#include "ray.h"
+#include <QImage>
+
+using color = vec3;
+
+typedef struct background_ {
+public:
+    bool isImage;
+    int bgW;
+    int bgH;
+
+    int offsetX;
+    int offsetY;
+
+    // * single star at background (isImage == False)
+    double starBrightness;
+
+    // * background Image (isImage == True)
+    QImage *bgImage;
+
+    void setBg(int bgW_, int bgH_, int offsetX_, int offsetY_){
+        bgW = bgW_;
+        bgH = bgH_;
+        offsetX = offsetX_;
+        offsetY = offsetY_;
+    }
+    void setStar(int bgW_, int bgH_, double starBrightness_=0.02, int offsetX_=0, int offsetY_=0){
+        isImage = false;
+        setBg(bgW_, bgH_, offsetX_, offsetY_);
+        starBrightness = starBrightness_;
+    }
+    void setImage(int bgW_, int bgH_, QImage *bgImage_, int offsetX_=0, int offsetY_=0){
+        isImage = true;
+        setBg(bgW_, bgH_, offsetX_, offsetY_);
+        bgImage = bgImage_;
+    }
+
+    QColor getColor(pixelData pix){
+        if(isImage == false) { // single star background
+            if(pix.outOfBounds){
+                return QColor::fromRgb(0,0,0);
+            }
+
+            double l1 = max(0.1, 1-1/starBrightness
+                                        *sqrt(
+                                            pow(((double)pix.x/bgW - 0.5 + ((double)offsetX * 0.01)), 2) +
+                                            pow(((double)pix.y/bgH - 0.5 + ((double)offsetY * 0.01)), 2)
+                                            ));
+            int l255 = (int)(l1*255);
+            return QColor::fromRgb(l255, l255, l255);
+        }
+        else { // image background
+            int x = (bgW-pix.x) - (offsetX * bgW)/40;
+            int y = (bgH-pix.y) - (offsetY * bgH)/40;
+
+            if(pix.outOfBounds || (x < 0 || x >= bgW) || (y < 0 || y >= bgH)){
+                return QColor::fromRgb(0,0,0);
+            }
+
+            QColor c = bgImage->pixel(x, y);
+            return c;
+        }
+    }
+} background;
+
 
 class camera{
 public:
     // resolution (w x h)
-    double aspect_ratio;
-    int wres;
-    int hres;
+    double aspect_ratio = 0.75;
+    int wres = 512;
+    int hres = 384;
 
-    // * simulation parameters
+    // The background object which saves the mapping from pixelData to colors
+
+    // *** rendering parameters ***
     // * field of view (in degrees)
     double fov;
     // * distance to black hole
     double D;
-    // * position of star at background
-    int starOffsetX;
-    int starOffsetY;
+    // * the mapping from pixelData to color
+    background bg;
 
-    color getColor(int i, int j){
+    QColor getColor(int i, int j){
         // Create a new ray object (for the ith row, jth col of image)
 
         double vp_dist = (wres/2.0) / tan(fov/2);
@@ -27,36 +92,22 @@ public:
         double pix_x = ((double)i - (wres/2+1));
         double pix_y = ((double)j - (hres/2+1));
 
-        vec3 v(vp_dist, pix_x, pix_y);
+        vec3 v_(vp_dist, pix_x, pix_y);
         double beta = atan2(pix_y, pix_x);
-        double alpha = acos(vp_dist / v.norm());
+        double alpha = acos(vp_dist / v_.norm());
 
-        ray ray_i(D, alpha, beta);
-        int bgW = 4000;
-        int bgH = 3000;
-        pixelData pix = ray_i.getBgPixel(bgW, bgH);
+        ray ray_ij(D, alpha, beta);
 
-        if(pix.outOfBounds){
-            return color(0,0,0);
-        }
-        else{
-            double l = max(0.1, 1-30*sqrt(
-                                        pow(((double)pix.x/bgW - 0.5 + ((double)starOffsetX * 0.02)), 2) +
-                                        pow(((double)pix.y/bgH - 0.5 + ((double)starOffsetY * 0.02)), 2)
-            ));
-            return color(l, l, l);
-        }
+        // *** perform ray tracing for ray_ij ***
+        pixelData pix = ray_ij.getBgPixel(bg.bgW, bg.bgH);
+
+        return bg.getColor(pix);
     }
 
+    camera(double fov, double D, background bg): fov(fov), D(D), bg(bg) { }
 
-    camera(): wres(512), aspect_ratio(0.75), hres(384), fov(Pi * 0.6), D(10.0) { }
-    camera(double fov, double D, int starOffsetX, int starOffsetY):
-        wres(512), aspect_ratio(0.75), hres(384),
-        starOffsetX(starOffsetX), starOffsetY(starOffsetY), fov(fov), D(D) { }
-    camera(int wres, double aspect_ratio, int starOffsetX, int starOffsetY, double fov, double D):
-        wres(wres), aspect_ratio(aspect_ratio), hres((int)(wres * aspect_ratio)),
-        starOffsetX(starOffsetX), starOffsetY(starOffsetY), fov(fov), D(D) { }
-
+    // Unused (used in testing on console)
+    /*
     void renderToPPM(){
         cout << "P3\n" << wres << ' ' << hres << "\n255\n";
 
@@ -71,7 +122,7 @@ public:
             }
             cout << buffer;
         }
-    }
+    }*/
 };
 
 #endif // CAMERA_H
