@@ -22,8 +22,8 @@ public:
     
     double phi = 0;
     double dphi = 0.003;
-    const double rS = 1.0;
-    const double bgR = 100.0; // distance from center to background (celestial sphere)
+    const double rS = 1.0; // Schwarzschild radius
+    const double bgR = 500.0; // distance from center to background (celestial sphere)
 
     bool finished = false;
     bool reachedBg = false;
@@ -87,14 +87,14 @@ public:
             return pixelData {false, x, y};
         }
     }
-    
+
     void update(){
-        phi += dphi;
         D2u = 1.5 * rS * u*u - u;
 
         // Euler's method
-        u += dphi * Du + 0.5 * (dphi*dphi) * D2u;
+        phi += dphi;
         Du += dphi * D2u;
+        u += dphi * Du;
     }
 };
 
